@@ -5,6 +5,7 @@ from geometry_msgs.msg import PointStamped
 from cv_bridge import CvBridge
 import numpy as np
 
+
 class PixelTo3D(Node):
     def __init__(self):
         super().__init__('pixel_to_3d')
@@ -14,9 +15,14 @@ class PixelTo3D(Node):
         self.depth_image = None
         self.camera_info = None
 
+        # 🔥 smoothing for Z
+        self.prev_z = None
+        self.alpha = 0.7
+
+        # 🔥 Subscribers
         self.create_subscription(
             Image,
-            '/camera/side_camera/aligned_depth_to_color/image_raw',
+            '/camera/side_camera/depth/image_rect_raw',
             self.depth_callback,
             10
         )
@@ -35,9 +41,8 @@ class PixelTo3D(Node):
             10
         )
 
+        # 🔥 Publisher
         self.pub = self.create_publisher(PointStamped, '/hand_3d', 10)
-
-        self.get_logger().info('pixel_to_3d started, waiting for depth + camera_info...')
 
     def depth_callback(self, msg):
         self.depth_image = self.bridge.imgmsg_to_cv2(msg)
@@ -46,51 +51,63 @@ class PixelTo3D(Node):
         self.camera_info = msg
 
     def pixel_callback(self, msg):
-        if self.depth_image is None:
-            self.get_logger().warn('No depth image yet', throttle_duration_sec=2.0)
-            return
-        if self.camera_info is None:
-            self.get_logger().warn('No camera_info yet', throttle_duration_sec=2.0)
+        if self.depth_image is None or self.camera_info is None:
             return
 
         x = int(msg.point.x)
         y = int(msg.point.y)
 
-        h, w = self.depth_image.shape[:2]
+        h, w = self.depth_image.shape
 
-        if y >= h or x >= w or x < 0 or y < 0:
-            self.get_logger().warn(
-                f'Pixel ({x},{y}) out of depth bounds ({w}x{h})',
-                throttle_duration_sec=2.0)
+        # 🔒 bounds check
+        if x < 0 or y < 0 or x >= w or y >= h:
             return
 
-        # Search a small region around the pixel for a valid depth value,
-        # since depth sensors often return 0 at the exact point.
-        radius = 5
-        y_min = max(0, y - radius)
-        y_max = min(h, y + radius + 1)
-        x_min = max(0, x - radius)
-        x_max = min(w, x + radius + 1)
-        region = self.depth_image[y_min:y_max, x_min:x_max]
-        valid = region[region > 0]
+        # 🔥 FIX 1: Take neighborhood median (stable depth)
+        kernel_size = 3
+        depth_values = []
 
-        if valid.size == 0:
-            self.get_logger().warn(
-                f'No valid depth at pixel ({x},{y})',
-                throttle_duration_sec=2.0)
+        for i in range(-kernel_size, kernel_size + 1):
+            for j in range(-kernel_size, kernel_size + 1):
+                nx = x + i
+                ny = y + j
+
+                if 0 <= nx < w and 0 <= ny < h:
+                    d = self.depth_image[ny, nx]
+                    if d > 0:
+                        depth_values.append(d)
+
+        if len(depth_values) == 0:
             return
 
-        depth = float(np.median(valid))
+        depth = np.median(depth_values)
 
+        print("Raw depth (mm):", depth)
+
+        # 🔥 Camera intrinsics
         fx = self.camera_info.k[0]
         fy = self.camera_info.k[4]
         cx = self.camera_info.k[2]
         cy = self.camera_info.k[5]
 
-        Z = depth / 1000.0  # mm -> meters
+        # 🔥 Convert to meters
+        Z = depth / 1000.0
+
+        # 🔥 FIX 2: Smooth Z
+        if self.prev_z is not None:
+            Z = self.alpha * self.prev_z + (1 - self.alpha) * Z
+
+        self.prev_z = Z
+
+        # 🔥 Optional: filter bad values
+        if Z < 0.2 or Z > 2.0:
+            return
+
+        # 🔥 Compute X, Y
         X = (x - cx) * Z / fx
         Y = (y - cy) * Z / fy
 
+        # 🔥 Publish
         pt = PointStamped()
         pt.header.stamp = self.get_clock().now().to_msg()
         pt.header.frame_id = "side_camera_color_optical_frame"
@@ -101,15 +118,19 @@ class PixelTo3D(Node):
 
         self.pub.publish(pt)
 
-        self.get_logger().info(
-            f'3D Point: {X:.3f}, {Y:.3f}, {Z:.3f}',
-            throttle_duration_sec=0.5)
+        # 🔥 Clean print
+        print(f"\n📍 3D Position:")
+        print(f"   X: {X:.3f} m")
+        print(f"   Y: {Y:.3f} m")
+        print(f"   Z: {Z:.3f} m")
+
 
 def main():
     rclpy.init()
     node = PixelTo3D()
     rclpy.spin(node)
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

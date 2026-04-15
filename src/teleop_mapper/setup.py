@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pixel_to_3d = teleop_mapper.pixel_to_3d:main',
+            '01pixe_to_3d = teleop_mapper.01pixe_to_3d:main',
         ],
     },
 )

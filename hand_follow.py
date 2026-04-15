@@ -52,41 +52,40 @@ class HandFollower(Node):
         self.q_current = np.array(
             [obs[f"{m}.pos"] for m in MOTOR_NAMES], dtype=float
         )
+        # Pin wrist_flex and gripper to their startup values; IK drives the rest.
+        self.wrist_flex_fixed = float(self.q_current[3])
+        self.gripper_fixed = float(obs["gripper.pos"])
 
         print("✅ Robot ready (slow mode, IK enabled)")
 
     def callback(self, msg):
-        x = msg.point.x
-        y = msg.point.y
-        z = msg.point.z
-
-        self.get_logger().info(f"Target: {x:.3f}, {y:.3f}, {z:.3f}")
+        rx, ry, rz = msg.point.x, msg.point.y, msg.point.z
 
         # Safety clamp on workspace bounds (meters)
-        x = max(min(x, 0.25), -0.25)
-        y = max(min(y, 0.25), -0.25)
-        z = max(min(z, 0.4), 0.05)
+        x = max(min(rx, 0.25), -0.25)
+        y = max(min(ry, 0.25), -0.25)
+        z = max(min(rz, 0.4), 0.05)
 
-        # Build desired EE pose as 4x4 transform (position only, keep current orientation)
+        self.get_logger().info(
+            f"raw: {rx:.3f},{ry:.3f},{rz:.3f} -> clamped: {x:.3f},{y:.3f},{z:.3f}"
+        )
+
+        # Position-only IK while debugging (identity orientation, zero weight)
         t_desired = np.eye(4, dtype=float)
-        t_fk = self.kinematics.forward_kinematics(self.q_current)
-        t_desired[:3, :3] = t_fk[:3, :3]  # preserve current orientation
         t_desired[:3, 3] = [x, y, z]
 
-        # Solve IK
         q_target = self.kinematics.inverse_kinematics(
             self.q_current, t_desired,
             position_weight=1.0,
-            orientation_weight=0.01,
+            orientation_weight=0.0,
         )
+
+        q_target[3] = self.wrist_flex_fixed
         self.q_current = q_target
 
-        # Build joint-space action
         action = {f"{m}.pos": float(q_target[i]) for i, m in enumerate(MOTOR_NAMES)}
-        action["gripper.pos"] = 50.0
-
+        action["gripper.pos"] = self.gripper_fixed
         self.robot.send_action(action)
-        self.get_logger().info("Command sent")
 
     def destroy_node(self):
         self.robot.disconnect()

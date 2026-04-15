@@ -17,7 +17,8 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            'camera_name': 'side_camera'
+            'camera_name': 'side_camera',
+            'align_depth.enable': 'true',
         }.items()
     )
 
@@ -46,9 +47,25 @@ def generate_launch_description():
         name='hand_tracker'
     )
 
+    # 🔥 Pixel → 3D node
+    pixel_to_3d_node = Node(
+        package='teleop_mapper',
+        executable='pixel_to_3d',
+        name='pixel_to_3d'
+    )
+
+    # 🔥 Transform to robot frame
+    transform_point_node = Node(
+        package='point_target',
+        executable='transform_point',
+        name='transform_point'
+    )
+
     return LaunchDescription([
         realsense_launch,
         apriltag_launch,
         tag_to_tf_node,
-        hand_tracking_node
+        hand_tracking_node,
+        pixel_to_3d_node,
+        transform_point_node
     ])
