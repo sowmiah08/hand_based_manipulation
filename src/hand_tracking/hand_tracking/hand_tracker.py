@@ -59,12 +59,13 @@ class HandTracker(Node):
                 mp.solutions.hands.HAND_CONNECTIONS
             )
 
-            lm = hand_landmarks.landmark[8]
+            lm_tip = hand_landmarks.landmark[8]
+            lm_base = hand_landmarks.landmark[6]
 
             h, w, _ = frame.shape
-            print("height=", h,"width=", w)
-            x = float(lm.x * w)
-            y = float(lm.y * h)
+            print("height=", h,"width=", w, "lm_tip=", lm_tip, "lm_base=", lm_base)
+            x = ((lm_tip.x + lm_base.x) / 2) * w
+            y = ((lm_tip.y + lm_base.y) / 2) * h
             print("(x, y)=", x, y)
 
             # 🔥 smoothing

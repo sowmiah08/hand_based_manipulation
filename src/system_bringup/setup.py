@@ -26,6 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
             'tag_to_tf = system_bringup.tag_to_tf:main',
+            '3d_depth_val = system_bringup.3d_depth_val:main',
         ],
     },
 )

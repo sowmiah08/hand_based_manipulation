@@ -2,7 +2,6 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PointStamped
 import tf2_ros
-import tf2_geometry_msgs  # noqa: F401 — registers PointStamped with tf2
 
 class TransformPoint(Node):
     def __init__(self):
@@ -38,6 +37,7 @@ class TransformPoint(Node):
             transformed.header.stamp = msg_time
 
             self.pub.publish(transformed)
+        
 
             print(f"Target (robot frame): "
                   f"{transformed.point.x:.3f}, "

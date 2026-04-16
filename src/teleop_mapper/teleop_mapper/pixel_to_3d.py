@@ -16,14 +16,14 @@ class PixelTo3D(Node):
 
         self.create_subscription(
             Image,
-            '/camera/side_camera/aligned_depth_to_color/image_raw',
+            '/camera/side_camera/depth/image_rect_raw',
             self.depth_callback,
             10
         )
 
         self.create_subscription(
             CameraInfo,
-            '/camera/side_camera/color/camera_info',
+            '/camera/side_camera/depth/camera_info',
             self.info_callback,
             10
         )
@@ -81,6 +81,7 @@ class PixelTo3D(Node):
             return
 
         depth = float(np.median(valid))
+        print("the depth is", depth)
 
         fx = self.camera_info.k[0]
         fy = self.camera_info.k[4]
