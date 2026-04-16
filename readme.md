@@ -95,52 +95,21 @@ Download [`so101_new_calib.urdf`](https://github.com/TheRobotStudio/SO-ARM100/bl
 
 ## Running
 
-### Option A: Full system launch
+### Full system launch
 
-This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, and hand tracker:
+This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, hand tracker, Pixel-to-3D and Frame transform:
 
 ```bash
 ros2 launch system_bringup full_system.launch.py
 ```
 
-Then in separate terminals:
+Then in a separate terminal:
 
 ```bash
-# Pixel-to-3D conversion
-ros2 run teleop_mapper pixel_to_3d
-
-# Camera-to-robot frame transform
-ros2 run point_target transform_point
 
 # Robot controller (requires LeRobot conda env)
 conda activate lerobot
 source /opt/ros/jazzy/setup.bash
-python hand_follow.py
-```
-
-### Option B: Step-by-step
-
-```bash
-# Terminal 1: Camera
-ros2 launch realsense2_camera rs_launch.py camera_name:=side_camera
-
-# Terminal 2: AprilTag detection
-ros2 launch system_bringup apriltag.launch.py
-
-# Terminal 3: Tag-to-TF bridge
-ros2 run system_bringup tag_to_tf
-
-# Terminal 4: Hand tracker
-ros2 run hand_tracking hand_tracker
-
-# Terminal 5: Pixel-to-3D
-ros2 run teleop_mapper pixel_to_3d
-
-# Terminal 6: Frame transform
-ros2 run point_target transform_point
-
-# Terminal 7: Robot controller
-conda activate lerobot && source /opt/ros/jazzy/setup.bash
 python hand_follow.py
 ```
 
