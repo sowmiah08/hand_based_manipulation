@@ -22,7 +22,7 @@ class HandTracker(Node):
 
         self.pub = self.create_publisher(PointStamped, '/hand_pixel', 10)
 
-        # 🔥 MediaPipe config
+        # MediaPipe config
         self.mp_hands = mp.solutions.hands.Hands(
             static_image_mode=False,
             max_num_hands=1,
@@ -31,17 +31,12 @@ class HandTracker(Node):
         )
 
         self.mp_draw = mp.solutions.drawing_utils
-
-        # 🔥 smoothing
         self.prev_x = None
         self.prev_y = None
         self.alpha = 0.7
 
-        # 🔥 NEW: time control
         self.last_sent_time = 0
-        self.interval = 0.4   # ⏱️ adjust (0.3–0.5 ideal)
-
-        # 🔥 NEW: movement threshold
+        self.interval = 0.4  
         self.pixel_threshold = 5
 
     def callback(self, msg):
@@ -68,12 +63,10 @@ class HandTracker(Node):
             y = ((lm_tip.y + lm_base.y) / 2) * h
             print("(x, y)=", x, y)
 
-            # 🔥 smoothing
             if self.prev_x is not None:
                 x = self.alpha * self.prev_x + (1 - self.alpha) * x
                 y = self.alpha * self.prev_y + (1 - self.alpha) * y
 
-            # 🔥 movement threshold check
             if self.prev_x is not None:
                 if abs(x - self.prev_x) < self.pixel_threshold and abs(y - self.prev_y) < self.pixel_threshold:
                     cv2.imshow("Hand Tracking", frame)
@@ -82,11 +75,9 @@ class HandTracker(Node):
 
             self.prev_x = x
             self.prev_y = y
-
-            # 🔴 draw fingertip
             cv2.circle(frame, (int(x), int(y)), 8, (0, 0, 255), -1)
 
-            # 🔥 time gating
+            # delay added to avoid unnecessary jitter in robot 
             current_time = time.time()
             if current_time - self.last_sent_time < self.interval:
                 cv2.imshow("Hand Tracking", frame)
@@ -104,7 +95,7 @@ class HandTracker(Node):
             pt.point.z = 0.0
 
             self.pub.publish(pt)
-            print("📤 Sent:", x, y)
+            print(" Sent:", x, y)
 
         cv2.imshow("Hand Tracking", frame)
         cv2.waitKey(1)

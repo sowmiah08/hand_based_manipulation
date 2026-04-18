@@ -14,16 +14,17 @@ class PixelTo3D(Node):
         self.depth_image = None
         self.camera_info = None
 
+        # Used the depth image aligned to the color frame so hand tracker pixel coordinates map directly to depth samples.
         self.create_subscription(
             Image,
-            '/camera/side_camera/depth/image_rect_raw',
+            '/camera/side_camera/aligned_depth_to_color/image_raw',
             self.depth_callback,
             10
         )
 
         self.create_subscription(
             CameraInfo,
-            '/camera/side_camera/depth/camera_info',
+            '/camera/side_camera/aligned_depth_to_color/camera_info',
             self.info_callback,
             10
         )
@@ -64,8 +65,7 @@ class PixelTo3D(Node):
                 throttle_duration_sec=2.0)
             return
 
-        # Search a small region around the pixel for a valid depth value,
-        # since depth sensors often return 0 at the exact point.
+        # Search nearby pixels for a valid depth value, as depth sensors return 0 at exact points.
         radius = 5
         y_min = max(0, y - radius)
         y_max = min(h, y + radius + 1)
@@ -88,7 +88,7 @@ class PixelTo3D(Node):
         cx = self.camera_info.k[2]
         cy = self.camera_info.k[5]
 
-        Z = depth / 1000.0  # mm -> meters
+        Z = depth / 1000.0  
         X = (x - cx) * Z / fx
         Y = (y - cy) * Z / fy
 

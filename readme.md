@@ -21,7 +21,7 @@ RealSense Camera
   tag_to_tf ──► TF (camera→base_link) ──► transform_point ──► /target_point (3D, robot frame)
                                                                       │
                                                                       ▼
-                                                              hand_follow.py (IK → motor commands)
+                                                       lerobot ──► hand_chase.py (IK → motor commands)
 ```
 
 ## Packages
@@ -33,7 +33,7 @@ RealSense Camera
 | `point_target` | `transform_point` | Transforms `/hand_3d` from camera frame to `base_link` via TF2, publishes `/target_point` |
 | `system_bringup` | `tag_to_tf` | Listens to AprilTag detections, broadcasts the camera→base_link TF |
 | `arm_control` | — | Placeholder for future arm control nodes |
-| `robot_decription` | — | Robot description / URDF assets |
+| `robot_description` | — | URDF, Xacro, and RViz display launch files for the SO101 |
 
 ## Topics
 
@@ -51,10 +51,8 @@ RealSense Camera
 
 ### Hardware
 
-- [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) robotic arm (SO101 variant)
+- Lerobot arm (SO101 variant)
 - Intel RealSense depth camera
-- AprilTag (16h5 family, 3 cm) fixed to the robot base
-- USB serial connection to the arm (`/dev/ttyACM1` by default)
 
 ### Software
 
@@ -63,14 +61,13 @@ RealSense Camera
 - Python 3.12
 - [LeRobot](https://github.com/huggingface/lerobot) (for kinematics and motor control)
 - [realsense2_camera](https://github.com/IntelRealSense/realsense-ros) ROS 2 driver
-- [apriltag_ros](https://github.com/christianrauch/apriltag_ros) ROS 2 package
 
 ## Setup
 
 ### 1. Build the workspace
 
 ```bash
-cd hand_robot_ws
+cd hand_based_manipulation
 colcon build
 source install/setup.bash
 ```
@@ -83,35 +80,47 @@ pip install mediapipe opencv-python
 
 ### 3. Set up LeRobot (in a separate conda env)
 
+Follow the installation instructions at https://huggingface.co/docs/lerobot/installation, then run:
+
 ```bash
-conda create -n lerobot python=3.12
 conda activate lerobot
-pip install lerobot
 ```
 
-### 4. Download the URDF
+### 4. URDF (for Kinematics)
 
-Download [`so101_new_calib.urdf`](https://github.com/TheRobotStudio/SO-ARM100/blob/main/Simulation/SO101/so101_new_calib.urdf) and place it at `./SO101/so101_new_calib.urdf` relative to where you run `hand_follow.py`.
+The SO101 URDF (`so101_new_calib.urdf`) ships with the `robot_description` package under `src/robot_description/urdf/`. To visualize it in RViz:
+
+```bash
+ros2 launch robot_description so101_display.launch.py
+```
 
 ## Running
+
 
 ### Full system launch
 
 This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, hand tracker, Pixel-to-3D and Frame transform:
 
+This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, hand tracker, Pixel-to-3D conversion and Camera-to-robot frame transform which give the target position 
+
+
 ```bash
 ros2 launch system_bringup full_system.launch.py
 ```
+
 
 Then in a separate terminal:
 
 ```bash
 
+
+
 # Robot controller (requires LeRobot conda env)
 conda activate lerobot
 source /opt/ros/jazzy/setup.bash
-python hand_follow.py
+python hand_chase.py
 ```
+
 
 ## Configuration
 
@@ -125,18 +134,13 @@ python hand_follow.py
 | Motor velocity | `hand_follow.py` | 10 | Servo moving velocity limit |
 | Motor acceleration | `hand_follow.py` | 3 | Servo acceleration limit |
 
+
 ## Safety
 
 - Motor velocity and acceleration are capped on startup for safe testing.
 - Target positions are clamped to a bounded workspace before IK is solved.
-- The robot disconnects cleanly on `Ctrl+C`.
+- The robot moves to home position when no target point are received and on `Ctrl+C`.
 
-## Future Work
-
-- Gesture-based gripper control (pinch to grab)
-- Trajectory smoothing and filtering
-- Imitation learning via LeRobot
-- Multi-camera fusion
 
 ## License
 

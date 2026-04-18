@@ -47,14 +47,14 @@ def generate_launch_description():
         name='hand_tracker'
     )
 
-    # 🔥 Pixel → 3D node
+    # Pixel → 3D node
     pixel_to_3d_node = Node(
         package='teleop_mapper',
         executable='pixel_to_3d',
         name='pixel_to_3d'
     )
 
-    # 🔥 Transform to robot frame
+    # Transform to robot frame
     transform_point_node = Node(
         package='point_target',
         executable='transform_point',
