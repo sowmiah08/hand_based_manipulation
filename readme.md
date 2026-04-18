@@ -121,20 +121,6 @@ source /opt/ros/jazzy/setup.bash
 python hand_chase.py
 ```
 
-
-## Configuration
-
-| Parameter | Location | Default | Description |
-|---|---|---|---|
-| Camera name | `full_system.launch.py` | `side_camera` | RealSense camera namespace |
-| AprilTag family | `apriltag.launch.py` | `16h5` | Tag family for detection |
-| AprilTag size | `apriltag.launch.py` | `0.03` m | Physical tag edge length |
-| Serial port | `hand_follow.py` | `/dev/ttyACM1` | SO101 USB serial device |
-| Workspace limits | `hand_follow.py` | x/y: ±0.25 m, z: 0.05–0.4 m | Safety clamp on target position |
-| Motor velocity | `hand_follow.py` | 10 | Servo moving velocity limit |
-| Motor acceleration | `hand_follow.py` | 3 | Servo acceleration limit |
-
-
 ## Safety
 
 - Motor velocity and acceleration are capped on startup for safe testing.
