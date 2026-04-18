@@ -99,8 +99,6 @@ ros2 launch robot_description so101_display.launch.py
 
 ### Full system launch
 
-This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, hand tracker, Pixel-to-3D and Frame transform:
-
 This starts the RealSense camera, AprilTag detector, tag-to-TF bridge, hand tracker, Pixel-to-3D conversion and Camera-to-robot frame transform which give the target position 
 
 
